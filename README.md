@@ -1,3 +1,3 @@
 # Test_Fixture_Tool_v1.0
-See More Detail by linked URL below:
+See More Detail by linked URL:
 https://drive.google.com/file/d/1R2nBULG4HEJeHdUHFCYjnByI8LhhMtbr/view?usp=share_link
