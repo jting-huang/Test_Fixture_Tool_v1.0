@@ -38,6 +38,7 @@ t2 = None
 t3 = None
 t4 = None
 
+gataway_data = []
 
 # deviceDescription = "USB-4711A,BID#5"
 channelCount = 3
@@ -324,19 +325,21 @@ class main_page():
 
         def readSerial():
             print("Receiving gateway data")
+            gw_str = StringVar()
             global serialData, gw_data
             while serialData: 
+                global nh3ppm, signed_temp, humi, rssi, battery
                 data = ser.readline()
-                global nh3ppm, signed_temp, humi
+                str_data = gw_str.set(gataway_data(data))
 
                 gw_data = tk.Label(self.notebook_3,
-                            text=check_gatewayData(data),
+                            text=check_gatewayData(str_data),
                             borderwidth=0,
                             font=('Arial',24,'bold'),
                             fg='#00FF00')
                 gw_data.place(x=180, y=180)
-                time.sleep(3)
-                gw_data.config(text='')
+                # time.sleep(3)
+                # gw_data.config(text='')
              
 
         def connection():
@@ -412,21 +415,6 @@ class main_page():
                     text="Probe State : ", 
                     anchor='nw')
         lb_pb.place(x=5, y=120)
-
-        # lb_sm = tk.Label(self.notebook_3, 
-        #                 font=('Arial',18,'bold'),
-        #                 text="Simulator Data:",
-        #                 anchor='nw')               
-        # lb_sm.place(x=5, y=180)
-
-        # sm_data = tk.Label(self.notebook_3,
-        #                     text=send_ammo(nh3_value),
-        #                     borderwidth=0,
-        #                     font=('Arial',24,'bold'),
-        #                     fg='#00FF00')
-        # sm_data.place(x=200, y=180)
-        # time.sleep(5)
-        # sm_data.config(text="     ")
 
 
         lb_gt = tk.Label(self.notebook_3, 
@@ -515,7 +503,7 @@ class main_page():
                                     al_on = tk.Label(self.notebook_3, 
                                                 font=('Arial',20,'bold'),
                                                 text="Alarm On",
-                                                fg='#00FF00')               
+                                                fg='#FF8000')               
                                     al_on.place(x=150, y=240)
                                     alarm_flag = 2
                         

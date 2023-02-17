@@ -14,7 +14,6 @@ pb_list = [0, 1, 2]
 
 def send_data(sen, ftime, temperature, it, mt, humidity, ih, mh, ammonia, inh3, mnh3, 
     CO2, iCO2, mCO2, wind, iwind, mwind, port):
-    global x_temp
    
     read_times = 0 
     incre_when = 2
@@ -223,7 +222,7 @@ def at_cmd_cksum(data):
 
 
 def check_gatewayData(send):
-    global nh3ppm, signed_temp, humi
+    global nh3ppm, signed_temp, humi, rssi, battery
     if(at_cmd_cksum(send) == 'OK'):
         lora_id = send[5:(5+8)]
         # print("lora_id:", lora_id)
@@ -246,37 +245,40 @@ def check_gatewayData(send):
             print("gateway:", "NH3:", nh3ppm, "Temp:", signed_temp, "Humi:", humi)
         elif(payload_hex[0] == 2): # Status report package (Y gen1)
             tx_idx = payload_hex[1]
+            rssi = payload_hex[5]
+            battery = payload_hex[6]
+            print("Rssi:", rssi, "Battery:", battery)
         elif(payload_hex[0] == 3): # System information package (Y gen1)
             tx_idx = payload_hex[1]
         elif(payload_hex[0] == 4): # System parameter package (Y gen1)
             tx_idx = payload_hex[1]
         
-        return nh3ppm, signed_temp, humi
+        return nh3ppm, signed_temp, humi, rssi, battery
 
-def NH3_Data(send):
-    global nh3ppm
-    if(at_cmd_cksum(send) == 'OK'):
-        lora_id = send[5:(5+8)]
-        # print("lora_id:", lora_id)
-        payload_data = send[(5+8+10):(5+8+10+22)]
-        # print("payload_data:", payload_data)
+# def Rssi_Data(send):
+#     global rssi, battery
+#     if(at_cmd_cksum(send) == 'OK'):
+#         lora_id = send[5:(5+8)]
+#         # print("lora_id:", lora_id)
+#         payload_data = send[(5+8+10):(5+8+10+22)]
+#         # print("payload_data:", payload_data)
 
-        payload_hex = []
-        for i in range(0, 22, 2):
-           payload_hex.append(bytes_to_int(payload_data[i:(i+2)])) # for checksum
+#         payload_hex = []
+#         for i in range(0, 22, 2):
+#            payload_hex.append(bytes_to_int(payload_data[i:(i+2)])) # for checksum
            
-        if(payload_hex[0] == 1): # Regular measurement package (Y gen1)
-            tx_idx = payload_hex[1]
-            nh3ppm = payload_hex[2]
-            # print("NH3:", nh3ppm)
-        elif(payload_hex[0] == 2): # Status report package (Y gen1)
-            tx_idx = payload_hex[1]
-        elif(payload_hex[0] == 3): # System information package (Y gen1)
-            tx_idx = payload_hex[1]
-        elif(payload_hex[0] == 4): # System parameter package (Y gen1)
-            tx_idx = payload_hex[1]
+#         if(payload_hex[0] == 1): # Regular measurement package (Y gen1)
+#             tx_idx = payload_hex[1]
+#         elif(payload_hex[0] == 2): # Status report package (Y gen1)
+#             tx_idx = payload_hex[1]
+#             rssi = payload_hex[5]
+#             battery = payload_hex[6]
+#         elif(payload_hex[0] == 3): # System information package (Y gen1)
+#             tx_idx = payload_hex[1]
+#         elif(payload_hex[0] == 4): # System parameter package (Y gen1)
+#             tx_idx = payload_hex[1]
         
-        return nh3ppm
+#         return rssi, battery
 
 
 # float to hex
