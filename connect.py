@@ -2,14 +2,7 @@ import serial, struct, time , random
 # from random import randint
 # from multiprocessing import Process, Value, Lock
 
-pb_flag = 0
-pb_list = [0, 1, 2]
- 
-# def get_xData(x):
-#     global x_temp # 宣告全域性變數
-#     time.sleep(0.01)
-#     # with x_temp.get_lock(): # 直接呼叫get_lock()函式獲取鎖
-#     x.value = x_temp
+# pb_flag = 0
              
 
 def send_data(sen, ftime, temperature, it, mt, humidity, ih, mh, ammonia, inh3, mnh3, 
@@ -71,16 +64,16 @@ def send_data(sen, ftime, temperature, it, mt, humidity, ih, mh, ammonia, inh3, 
         if sen == "X":    
             if(send == b'E\x00\x01\x13Y'): 
                 print("receive data")
-                global pb_flag, x_temp
-                pb_flag = 0
+                global pb_flag, x_temp, x_humi, x_ammo
+                # pb_flag = 0
                 # print(get_pb(0))
                 # print("pb_flag:", pb_flag)
                 # ser.write(serial.to_bytes([0x4F, 0x4B, 0x01, 0x00, 0x00, 0x00, 0x00, 0x9B, 0xCD, 0xCC, 0xCC, 0x41, 0x66, 0x66, 0x86, 0x42, 0x3A]))
                 send_th(ser, temperature, humidity)
-                # x_temp = temperature
-                # print("xData_temp:", x_temp)
-                # x_humi = humidity
-                # print("xData_humi:", x_humi)
+                x_temp = temperature
+                print("xData_temp:", x_temp)
+                x_humi = humidity
+                print("xData_humi:", x_humi)
                 # ser.write(serial.to_bytes([]))
     
                 if ftime == 0: # and read_times%incre_when == 0:
@@ -97,14 +90,14 @@ def send_data(sen, ftime, temperature, it, mt, humidity, ih, mh, ammonia, inh3, 
                 # print("read", read_times, incre_when)
             
             if(send == b'E\x00\x01\xca\x10'):
-                pb_flag = 1
+                # pb_flag = 1
                 # print(get_pb(1))   
                 # print("pb_flag:", pb_flag) 
                 # ser.write(serial.to_bytes([0x4F, 0x4B, 0x01, 0x00, 0x00, 0x00, 0x00, 0x9B, 0x9A, 0x99, 0x49, 0x41, 0xBD]))
                 time.sleep(0.364)
                 send_xnh3(ser, ammonia) 
-                # x_ammo = ammonia
-                # print("xData_ammo:", x_ammo)
+                x_ammo = ammonia
+                print("xData_ammo:", x_ammo)
 
                 # gl_nh3 = send_ammo(ammonia)
                 # print("Got NH3 data:", send_nh3)
@@ -165,21 +158,21 @@ def send_data(sen, ftime, temperature, it, mt, humidity, ih, mh, ammonia, inh3, 
             print("Sensor type is erroneous")
 
 
-def get_pb():
-    global pb_flag
-    if pb_flag == 0:
-        pb_flag = pb_list[0]
-        print("state 1")
-        pb_flag = 1
-    elif pb_flag == 1:
-        pb_flag = pb_list[1]
-        print("state 2")
-    elif pb_flag != 0 and pb_flag != 1:
-        pb_flag = 2
-    elif pb_flag == 2:
-        pb_flag = pb_list[2]
-        print("state 3")
-    return pb_flag
+# def get_pb(): # probe flag
+#     global pb_flag
+#     if pb_flag == 0:
+#         pb_flag = pb_list[0]
+#         print("state 1")
+#         pb_flag = 1
+#     elif pb_flag == 1:
+#         pb_flag = pb_list[1]
+#         print("state 2")
+#     elif pb_flag != 0 and pb_flag != 1:
+#         pb_flag = 2
+#     elif pb_flag == 2:
+#         pb_flag = pb_list[2]
+#         print("state 3")
+#     return pb_flag
 
 
 # flag = [1, 2, 3]
@@ -221,6 +214,12 @@ def at_cmd_cksum(data):
             return 'xOK'
 
 
+nh3ppm = 0
+signed_temp = 0
+humi = 0 
+rssi = 0 
+battery = 0
+
 def check_gatewayData(send):
     global nh3ppm, signed_temp, humi, rssi, battery
     if(at_cmd_cksum(send) == 'OK'):
@@ -255,31 +254,6 @@ def check_gatewayData(send):
         
         return nh3ppm, signed_temp, humi, rssi, battery
 
-# def Rssi_Data(send):
-#     global rssi, battery
-#     if(at_cmd_cksum(send) == 'OK'):
-#         lora_id = send[5:(5+8)]
-#         # print("lora_id:", lora_id)
-#         payload_data = send[(5+8+10):(5+8+10+22)]
-#         # print("payload_data:", payload_data)
-
-#         payload_hex = []
-#         for i in range(0, 22, 2):
-#            payload_hex.append(bytes_to_int(payload_data[i:(i+2)])) # for checksum
-           
-#         if(payload_hex[0] == 1): # Regular measurement package (Y gen1)
-#             tx_idx = payload_hex[1]
-#         elif(payload_hex[0] == 2): # Status report package (Y gen1)
-#             tx_idx = payload_hex[1]
-#             rssi = payload_hex[5]
-#             battery = payload_hex[6]
-#         elif(payload_hex[0] == 3): # System information package (Y gen1)
-#             tx_idx = payload_hex[1]
-#         elif(payload_hex[0] == 4): # System parameter package (Y gen1)
-#             tx_idx = payload_hex[1]
-        
-#         return rssi, battery
-
 
 # float to hex
 def float_to_hex(f):
@@ -298,13 +272,8 @@ def ieee_754(num):
         hexnum = [0, 0, 0, 0]
     return hexnum
 
-# gl_t = 0.0
-# gl_h = 0.0
-def send_th(ser, temperature, humidity):
-    global gl_t, gl_h
-    gl_t = temperature
-    gl_h = humidity
 
+def send_th(ser, temperature, humidity):
     t, h = ieee_754(temperature), ieee_754(humidity) 
     t.reverse()
     h.reverse()

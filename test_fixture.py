@@ -19,15 +19,14 @@ from Automation.BDaq.InstantAiCtrl import InstantAiCtrl
 cp = ""
 sn = ""
 voltage = ""
-version = "v1.0"
+version = "v1.0.1"
 
-flag = 0
 
+power_flag = 0
 alarm_flag = 0 
 alarm_state = 0
 alarm_count = 0
 count = 0
-
 
 p1 = None
 p2 = None
@@ -38,11 +37,9 @@ t2 = None
 t3 = None
 t4 = None
 
-gataway_data = []
-
 # deviceDescription = "USB-4711A,BID#5"
 channelCount = 3
-startChannel = 5
+startChannel = 4
 deviceDescription = "USB-4704,BID#0"
 
 
@@ -325,21 +322,20 @@ class main_page():
 
         def readSerial():
             print("Receiving gateway data")
-            gw_str = StringVar()
             global serialData, gw_data
             while serialData: 
                 global nh3ppm, signed_temp, humi, rssi, battery
                 data = ser.readline()
-                str_data = gw_str.set(gataway_data(data))
+                # str_data = gw_str.set(gataway_data(data))
 
                 gw_data = tk.Label(self.notebook_3,
-                            text=check_gatewayData(str_data),
+                            text=check_gatewayData(data),
                             borderwidth=0,
                             font=('Arial',24,'bold'),
                             fg='#00FF00')
                 gw_data.place(x=180, y=180)
-                # time.sleep(3)
-                # gw_data.config(text='')
+                time.sleep(3)
+                gw_data.config(text='')
              
 
         def connection():
@@ -429,27 +425,31 @@ class main_page():
                         anchor='nw')               
         lb_al.place(x=5, y=240)
 
+            
 
-        # power state
         def DAQ_NAVI():
             global startChannel, channelCount, voltage, scaledData
             instanceAiObj = InstantAiCtrl(deviceDescription)
             while True:
-                time.sleep(0.5) 
+                time.sleep(0.2) 
                 # print("DAQ_NAVI Running")
                 _, scaledData = instanceAiObj.readDataF64(startChannel, channelCount)
                 for i in range(startChannel, startChannel + channelCount):  
-                    if scaledData[0] != None:
+                    print("Channel %d data: %.3f" % (i, scaledData[i-startChannel]))
+                    if scaledData[0]:
                         voltage = format(scaledData[i-startChannel], '.3f')
-                        # print("DAQ Value:" + voltage)   
-                        global flag, count, lb_ok, lb_error, alarm_flag, al_on, al_off, al_error, alarm_count, alarm_state
-                        if (voltage >= "4.825" <= "5.125") and count < 30:
+
+                        # power state   
+                        global power_flag, count, lb_ok, lb_error, pb_ok, pb_error, alarm_flag, al_on, al_off, al_error, alarm_count, alarm_state
+                        if (voltage >= "4.825" <= "5.125") and count < 30 and power_flag == 0:
                             lb_ok = tk.Label(self.notebook_3,
                                         text='OK',
                                         font=('Arial',24,'bold'),
                                         fg='#00FF00')                    
                             lb_ok.place(x=165, y=60)
-                            count = 0     
+                            power_flag = 1
+                            count = 0   
+
                                     
                         if (voltage >= "4.825" <= "5.125") and count > 30:
                             print("Power State Changed")         
@@ -458,7 +458,7 @@ class main_page():
                                         font=('Arial',18,'bold'),
                                         fg='#FF0000')
                             lb_error.place(x=160, y=60)   
-                            flag = 1 
+                            power_flag = 2 
                             
                         if voltage < "4.825" and count > 30:
                             print("Power State Changed")           
@@ -467,9 +467,34 @@ class main_page():
                                         font=('Arial',18,'bold'),
                                         fg='#FF0000')
                             lb_error.place(x=160, y=60) 
-                            flag = 1   
+                            power_flag = 2   
 
+                        # probe state
+                        if power_flag == 1:
+                            time.sleep(0.5)
+                            pb_flag = 1 
+                                    
+                            if pb_flag == 1:
+                                time.sleep(0.5)
+                                pb_ok = tk.Label(self.notebook_3,
+                                                text='OK',
+                                                font=('Arial',24,'bold'),
+                                                fg='#00FF00')                    
+                                pb_ok.place(x=165, y=120)
+                                
+                            if power_flag == 2:
+                                pb_flag = 2
+                                
+                                if pb_flag == 2:
+                                    time.sleep(1)
+                                    print("Probe State Error")
+                                    pb_error = tk.Label(self.notebook_3,
+                                                    text='FAIL',
+                                                    font=('Arial',18,'bold'),
+                                                    fg='#FF0000')                    
+                                    pb_error.place(x=160, y=120)
 
+                        # alarm state
                         if voltage != None:
                             if (scaledData[2]) < 1.5:
                                 # print("Alarm off vlotage:", voltage)
@@ -491,9 +516,6 @@ class main_page():
                                                 fg='#00FF00')               
                                     al_off.place(x=150, y=240)
                                     alarm_count = 0
-
-                            # if voltage != None and alarm_count > 30:
-                            #     alarm_count = 0   
          
                             if (scaledData[2]) > 1.5:
                                 alarm_flag = 1
@@ -516,42 +538,10 @@ class main_page():
                                                     text="Alarm Fail",
                                                     fg='#FF0000')               
                                         al_error.place(x=150, y=240)
-                               
+                                                    
 
-        # probe state
-        def probe_state():
-            global flag, pb_flag, pb_ok, pb_error
-            while True:
-                if pb_flag == 0:
-                    pb_flag = 1 
-                    
-                if pb_flag == 1:
-                    time.sleep(1)
-                    pb_ok = tk.Label(self.notebook_3,
-                                    text='OK',
-                                    font=('Arial',24,'bold'),
-                                    fg='#00FF00')                    
-                    pb_ok.place(x=165, y=120)
-                
-                if flag == 1:
-                    pb_flag = 2
-                    
-                    if pb_flag == 2:
-                        time.sleep(1)
-                        print("Probe State Error")
-                        pb_error = tk.Label(self.notebook_3,
-                                        text='FAIL',
-                                        font=('Arial',18,'bold'),
-                                        fg='#FF0000')                    
-                        pb_error.place(x=160, y=120)
-
-                if flag == 0:
-                    pb_flag = 0
-                    
-                    
-
-        # counter
-        def time_out():
+        # timer
+        def timer_counter():
             global count
             while True:
                 time.sleep(1)
@@ -564,49 +554,41 @@ class main_page():
             t1.start()
             t1.join(1) # waiting for main thread join
 
-            t2 = Thread(target=probe_state)
+            t2 = Thread(target=timer_counter)
             t2.daemon = True
             t2.start()
-            t2.join(1)
+            t2.join(1) 
 
-            t3 = Thread(target=time_out)
-            t3.daemon = True
-            t3.start()
-            t3.join(1)       
         except BaseException as e:
             print('{!r}; restarting thread'.format(e))
 
 
         def reset():
-            global scaledData, lb_ok, lb_error, pb_ok, pb_error, flag, pb_flag, count, alarm_flag, al_on, al_off, al_error, alarm_count, alarm_state
+            global scaledData, lb_ok, lb_error, pb_ok, pb_error, power_flag, count, alarm_flag, al_on, al_off, al_error, alarm_count, alarm_state
+            pb_flag = 0
             if p1.is_alive:
                 p1.terminate()
                 print('stop process')
                 p1.join()
 
-            if flag == 0:
+            if power_flag == 1:
                 lb_ok.config(text="     ")
                 scaledData[0] = scaledData
-                flag = 0
+                power_flag = 0
             else:
                pass
 
-            if flag == 1:
+            if power_flag == 2:
                 lb_error.config(text="        ")
                 scaledData[0] = scaledData
-                flag = 0
+                power_flag = 0
             else:
                 pass
 
-            if pb_flag == 1:    
+            if pb_ok:
                 pb_ok.config(text="     ")
-            else:
-                pass
-
-            if pb_flag == 2:
-                  pb_error.config(text="        ")
-            else:
-                pass
+            elif pb_error:
+                pb_error.config(text="        ")
 
             if alarm_state == 0:
                 al_off.config(text="                 ")
@@ -645,17 +627,23 @@ class main_page():
             alarm_count = 0
             alarm_flag = 0
             alarm_state = 0
-            
+            power_flag = 0
+            run_btn['state'] = ACTIVE
 
 
-        # Run Process
-        ttk.Button(self.notebook_3, text="Run", 
-            command=lambda:click_run(senChosen.get(), ftime.get(), ftempature.get(), iftem.get(), mtem.get(), fhumidity.get(), ifhum.get(), mhum.get(),
-            fNH3.get(), ifNH3.get(), mNH3.get(), fCO2.get(), ifCO2.get(), mCO2.get(), fwind.get(), ifwind.get(), mwind.get(), portChosen.get())).place(
-            x=680, y=50) 
+        # Run
+        global run_btn
+        run_btn = ttk.Button(self.notebook_3, text="Run")
+        run_btn.place(x=680, y=50)   
+        run_btn.config(command=lambda:click_run(senChosen.get(), ftime.get(), ftempature.get(), iftem.get(), mtem.get(), fhumidity.get(), ifhum.get(), mhum.get(),
+            fNH3.get(), ifNH3.get(), mNH3.get(), fCO2.get(), ifCO2.get(), mCO2.get(), fwind.get(), ifwind.get(), mwind.get(), portChosen.get()))
+        # ttk.Button.config(self.notebook_3, text="Run",
+        #     command=lambda:click_run(senChosen.get(), ftime.get(), ftempature.get(), iftem.get(), mtem.get(), fhumidity.get(), ifhum.get(), mhum.get(),
+        #     fNH3.get(), ifNH3.get(), mNH3.get(), fCO2.get(), ifCO2.get(), mCO2.get(), fwind.get(), ifwind.get(), mwind.get(), portChosen.get())).place(
+        #     x=680, y=50)
 
         # Reset
-        ttk.Button(self.notebook_3, text="Reset", command=reset).place(x=680, y=100)
+        ttk.Button(self.notebook_3, text="Reset", command=reset).place(x=680, y=100)         
 
         
         self.root.mainloop()
@@ -678,27 +666,14 @@ def click_run(sen, ftime, tem, item, mtem, hum, ihum, mhum, nh3, inh3, mnh3, CO2
     print("t\t", tem, item, fmtem, "\th\t", hum, ihum, fmhum, "\tammonia\t", nh3, inh3, fmnh3)
     print("CO2\t", CO2, iCO2, fmco2, "\twind\t", wind, iwind, fmwind)
 
-    global p1, p2, p3
+    global p1, p2, p3, run_btn
   
     p1 = mp.Process(target=connect.send_data, args=(sen, ftime, tem, item, fmtem, hum, ihum, fmhum, 
         nh3, inh3, fmnh3, CO2, iCO2, fmco2, wind, iwind, fmwind, port))
     p1.start()
     p1.join(1)
+    run_btn['state'] = DISABLED
 
-    
-
-# def reset():
-    # for widget in self.sensor1.winfo_children():
-    #     if isinstance(widget, ttk.Combobox):
-    #         widget.delete(0, 'end')
-    #     if isinstance(widget, tk.Entry):
-    #         widget.delete(0, 'end')
-    #     if isinstance(widget, tk.Text):
-    #         widget.delete('1.0', 'end')
-    #     if isinstance(widget, tk.Checkbutton):
-    #         widget.deselect()
-    #     if isinstance(widget, tk.Radiobutton):
-    #         r_time.set(None)
 
 
 def main():
